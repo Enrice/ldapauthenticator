@@ -429,6 +429,11 @@ class LDAPAuthenticator(Authenticator):
 
         if self.allowed_groups:
             self.log.debug("username:%s Using dn %s", username, userdn)
+            # need to escape DN/CN containing parentheses in AD
+            escaped_userdn = re.subn(r"([^\\])\(", r"\1\\28", userdn)[0]
+            escaped_userdn = re.subn(r"([^\\])\)", r"\1\\29", escaped_userdn)[0]
+            escaped_username = re.subn(r"([^\\])\(", r"\1\\28", username)[0]
+            escaped_username = re.subn(r"([^\\])\)", r"\1\\29", escaped_username)[0]
             found = False
             for group in self.allowed_groups:
                 group_filter = (
@@ -438,7 +443,7 @@ class LDAPAuthenticator(Authenticator):
                     "(memberUid={uid})"
                     ")"
                 )
-                group_filter = group_filter.format(userdn=userdn, uid=username)
+                group_filter = group_filter.format(userdn=escaped_userdn, uid=escaped_username)
                 group_attributes = ["member", "uniqueMember", "memberUid"]
                 found = conn.search(
                     group,
